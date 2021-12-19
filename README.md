@@ -1,8 +1,10 @@
 # update-docker-compose
 
-Easy Update & Install docker-compose.
+Easy updating & installing docker-compose.
 
-(Only support docker-compose >= 2.0 and Linux distributions.)
+Attention: Only support for
+* docker-compose >= 2.0
+* Linux distributions
 
 ## Required
 
