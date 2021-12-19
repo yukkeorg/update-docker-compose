@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+
+"""
+docker-compose updater and installer
+--------------------------------------------------------------------------------
+Copyright 2021 Yusuke Ohshima
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+import json as _json
+import logging
+import platform
+import stat
+from pathlib import Path
+from urllib import request
+
+
+logging.basicConfig(level=logging.INFO)
+
+
+PLATFORM = "-".join((platform.system().lower(), platform.machine().lower()))
+DOWNLOAD_FILENAME = "".join(("docker-compose-", PLATFORM))
+
+DOCKER_COMPOSE_LATEST_URL = "https://api.github.com/repos/docker/compose/releases/latest"
+
+DOCKER_PLUGIN_DIR = Path.home() / ".docker" / "cli-plugins"
+DOCKER_COMPOSE_PATH = DOCKER_PLUGIN_DIR / "docker-compose"
+
+
+def get_docker_compose_latest_release_info():
+    with request.urlopen(DOCKER_COMPOSE_LATEST_URL) as res:
+        return _json.load(res)
+
+
+def download(url: str, local_file: Path):
+    local_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with request.urlopen(url) as res:
+        local_file.write_bytes(res.read())
+
+    mode = local_file.stat().st_mode
+    local_file.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
+def detect_downloadurl(json: dict) -> str:
+    target = list(filter(lambda x: x["name"] == DOWNLOAD_FILENAME,
+                         json["assets"]))
+    if target:
+        return target[0]["browser_download_url"]
+
+
+if __name__ == "__main__":
+    logging.info("Downloading docker-compose releases information from GitHub.")
+    json = get_docker_compose_latest_release_info()
+    logging.info("Latest version: {name} ({published_at})".format(**json))
+    dlurl = detect_downloadurl(json)
+    logging.info("Downloading binary ...")
+    logging.debug(dlurl)
+    download(dlurl, DOCKER_COMPOSE_PATH)
+    logging.info("complited up to date.")
