@@ -2,7 +2,7 @@
 
 Easy updating & installing docker-compose.
 
-Attention: Only support for
+Attention: This is pnly supported for ...
 * docker-compose >= 2.0
 * Linux distributions
 
