@@ -6,7 +6,7 @@ Attention: This is only supported for ...
 * docker-compose >= 2.0
 * Linux distributions
 
-## Required
+## Requirements
 
 * Python3
 
