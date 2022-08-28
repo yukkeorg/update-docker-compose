@@ -90,4 +90,4 @@ if __name__ == "__main__":
     logging.debug(dlurl)
     download(dlurl, DOCKER_COMPOSE_PATH)
 
-    logging.info("complited up to date.")
+    logging.info("complete up to date.")
