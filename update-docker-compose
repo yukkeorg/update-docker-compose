@@ -30,6 +30,7 @@ import platform
 import stat
 from pathlib import Path
 from urllib import request
+import subprocess
 
 
 logging.basicConfig(level=logging.INFO)
@@ -37,14 +38,24 @@ logging.basicConfig(level=logging.INFO)
 
 PLATFORM = "-".join((platform.system().lower(), platform.machine().lower()))
 DOWNLOAD_FILENAME = "".join(("docker-compose-", PLATFORM))
-
 DOCKER_COMPOSE_LATEST_URL = "https://api.github.com/repos/docker/compose/releases/latest"
-
 DOCKER_PLUGIN_DIR = Path.home() / ".docker" / "cli-plugins"
 DOCKER_COMPOSE_PATH = DOCKER_PLUGIN_DIR / "docker-compose"
 
 
-def get_docker_compose_latest_release_info():
+def get_installed_docker_compose_version() -> str:
+    cmdline = [str(DOCKER_COMPOSE_PATH), "version"]
+    try:
+        result = subprocess.run(cmdline, check=True, capture_output=True, text=True)
+    except FileNotFoundError:
+        return "docker-compose is not installed."
+    except subprocess.CalledProcessError:
+        return "docker-compose execution error"
+    else:
+        return result.stdout.strip()
+
+
+def get_docker_compose_latest_release_info() -> dict[str, any]:
     with request.urlopen(DOCKER_COMPOSE_LATEST_URL) as res:
         return _json.load(res)
 
@@ -60,18 +71,23 @@ def download(url: str, local_file: Path):
 
 
 def detect_downloadurl(json: dict) -> str:
-    target = list(filter(lambda x: x["name"] == DOWNLOAD_FILENAME,
-                         json["assets"]))
+    target = list(filter(lambda x: x["name"] == DOWNLOAD_FILENAME, json["assets"]))
     if target:
         return target[0]["browser_download_url"]
 
 
 if __name__ == "__main__":
+    logging.info("Current installed docker-compose:")
+    logging.info(get_installed_docker_compose_version())
+
     logging.info("Downloading docker-compose releases information from GitHub.")
     json = get_docker_compose_latest_release_info()
+
     logging.info("Latest version: {name} ({published_at})".format(**json))
     dlurl = detect_downloadurl(json)
+
     logging.info("Downloading binary ...")
     logging.debug(dlurl)
     download(dlurl, DOCKER_COMPOSE_PATH)
+
     logging.info("complited up to date.")
